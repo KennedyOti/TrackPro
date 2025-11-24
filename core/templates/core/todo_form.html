@@ -1,0 +1,66 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block title %}{% if todo %}Edit Todo{% else %}Create Todo{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title mb-0">{% if todo %}Edit Todo{% else %}Create New Todo{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ todo.title|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ todo.description|default:'' }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="low" {% if todo.priority == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if todo.priority == 'medium' or not todo %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if todo.priority == 'high' %}selected{% endif %}>High</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="category" name="category" value="{{ todo.category|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="due_date" class="form-label">Due Date</label>
+                            <input type="datetime-local" class="form-control" id="due_date" name="due_date" value="{% if todo.due_date %}{{ todo.due_date|date:'Y-m-d\TH:i' }}{% endif %}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="reminder_date" class="form-label">Reminder Date</label>
+                            <input type="datetime-local" class="form-control" id="reminder_date" name="reminder_date" value="{% if todo.reminder_date %}{{ todo.reminder_date|date:'Y-m-d\TH:i' }}{% endif %}">
+                        </div>
+                    </div>
+                    {% if todo %}
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="pending" {% if todo.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="in_progress" {% if todo.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="completed" {% if todo.status == 'completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                        </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'todo_list' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">{% if todo %}Update{% else %}Create{% endif %} Todo</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

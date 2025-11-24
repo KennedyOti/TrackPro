@@ -1,0 +1,360 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="welcome-card">
+            <div class="welcome-content">
+                <h1 class="welcome-title">Welcome back, {{ user.first_name|default:user.username }}! 👋</h1>
+                <p class="welcome-subtitle">Here's what's happening with your tasks today</p>
+            </div>
+            <div class="welcome-actions">
+                <a href="{% url 'todo_create' %}" class="btn btn-success btn-lg">
+                    <i class="fas fa-plus me-2"></i>Add New Task
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <!-- Total Tasks -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_tasks }}</div>
+            <div class="stat-title">Total Tasks</div>
+        </div>
+    </div>
+
+    <!-- Pending Tasks -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ pending_tasks }}</div>
+            <div class="stat-title">Pending Tasks</div>
+        </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-spinner"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ in_progress_tasks }}</div>
+            <div class="stat-title">In Progress</div>
+        </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="stat-card completed">
+        <div class="stat-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completed_tasks }}</div>
+            <div class="stat-title">Completed</div>
+        </div>
+    </div>
+
+    <!-- High Priority -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ high_priority }}</div>
+            <div class="stat-title">High Priority</div>
+        </div>
+    </div>
+
+    <!-- Overdue -->
+    <div class="stat-card overdue">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-times"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ overdue_tasks }}</div>
+            <div class="stat-title">Overdue</div>
+        </div>
+    </div>
+
+    <!-- Due Today -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-day"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ due_today }}</div>
+            <div class="stat-title">Due Today</div>
+        </div>
+    </div>
+
+    <!-- Completed This Week -->
+    <div class="stat-card completed">
+        <div class="stat-icon">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completed_this_week }}</div>
+            <div class="stat-title">Completed This Week</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="row">
+    <!-- Recent Tasks -->
+    <div class="col-lg-8 mb-4">
+        <div class="recent-tasks">
+            <div class="tasks-header">
+                <h3 class="tasks-title">Recent Tasks</h3>
+                <a href="{% url 'todo_list' %}" class="view-all-btn">View All</a>
+            </div>
+            <div class="tasks-list">
+                {% for task in recent_tasks %}
+                    <div class="task-item">
+                        <div class="task-checkbox">
+                            {% if task.completed %}
+                                <i class="fas fa-check-circle text-success"></i>
+                            {% else %}
+                                <i class="far fa-circle text-muted"></i>
+                            {% endif %}
+                        </div>
+                        <div class="task-content">
+                            <div class="task-title">
+                                {{ task.title }}
+                                {% if task.priority == 'high' %}
+                                    <span class="badge bg-danger ms-2">High</span>
+                                {% elif task.priority == 'medium' %}
+                                    <span class="badge bg-warning ms-2">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary ms-2">Low</span>
+                                {% endif %}
+                            </div>
+                            <div class="task-meta">
+                                <span class="me-3">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {% if task.due_date %}
+                                        Due {{ task.due_date|date:"M d, Y" }}
+                                        {% if task.is_overdue %}
+                                            <span class="text-danger">(Overdue)</span>
+                                        {% endif %}
+                                    {% else %}
+                                        No due date
+                                    {% endif %}
+                                </span>
+                                <span>
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ task.created_at|timesince }} ago
+                                </span>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <a href="{% url 'todo_update' task.pk %}" class="task-action-btn" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="task-action-btn task-complete-btn"
+                                    data-task-id="{{ task.pk }}"
+                                    title="Mark Complete"
+                                    {% if task.completed %}disabled{% endif %}>
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="task-action-btn task-delete-btn"
+                                    data-task-id="{{ task.pk }}"
+                                    data-task-title="{{ task.title }}"
+                                    title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No tasks yet</h5>
+                        <p class="text-muted">Create your first task to get started!</p>
+                        <a href="{% url 'todo_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Task
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Summary -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'todo_create' %}" class="btn btn-success">
+                        <i class="fas fa-plus me-2"></i>New Task
+                    </a>
+                    <a href="{% url 'calendar' %}" class="btn btn-info">
+                        <i class="fas fa-calendar me-2"></i>View Calendar
+                    </a>
+                    <a href="{% url 'todo_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>All Tasks
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Priority Breakdown
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="priority-item d-flex justify-content-between align-items-center mb-2">
+                    <span class="priority-label">
+                        <span class="priority-dot high"></span>High Priority
+                    </span>
+                    <span class="badge bg-danger">{{ high_priority }}</span>
+                </div>
+                <div class="priority-item d-flex justify-content-between align-items-center mb-2">
+                    <span class="priority-label">
+                        <span class="priority-dot medium"></span>Medium Priority
+                    </span>
+                    <span class="badge bg-warning">{{ medium_priority }}</span>
+                </div>
+                <div class="priority-item d-flex justify-content-between align-items-center">
+                    <span class="priority-label">
+                        <span class="priority-dot low"></span>Low Priority
+                    </span>
+                    <span class="badge bg-secondary">{{ low_priority }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Deadlines -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>Upcoming
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if due_today > 0 %}
+                    <div class="upcoming-item mb-2">
+                        <i class="fas fa-calendar-day text-primary me-2"></i>
+                        <strong>{{ due_today }}</strong> due today
+                    </div>
+                {% endif %}
+                {% if due_this_week > 0 %}
+                    <div class="upcoming-item mb-2">
+                        <i class="fas fa-calendar-week text-info me-2"></i>
+                        <strong>{{ due_this_week }}</strong> due this week
+                    </div>
+                {% endif %}
+                {% if overdue_tasks > 0 %}
+                    <div class="upcoming-item">
+                        <i class="fas fa-calendar-times text-danger me-2"></i>
+                        <strong>{{ overdue_tasks }}</strong> overdue
+                    </div>
+                {% endif %}
+                {% if due_today == 0 and due_this_week == 0 and overdue_tasks == 0 %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p>All caught up!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<style>
+.welcome-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.welcome-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+}
+
+.welcome-actions {
+    flex-shrink: 0;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.tasks-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.priority-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.priority-dot.high {
+    background-color: #dc3545;
+}
+
+.priority-dot.medium {
+    background-color: #ffc107;
+}
+
+.priority-dot.low {
+    background-color: #6c757d;
+}
+
+.upcoming-item {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.upcoming-item:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 768px) {
+    .welcome-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .welcome-title {
+        font-size: 1.5rem;
+    }
+}
+</style>

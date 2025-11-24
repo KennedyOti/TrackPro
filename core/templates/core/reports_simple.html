@@ -1,0 +1,326 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block title %}Reports - Todo App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-0">Reports & Analytics</h1>
+        <p class="text-muted mt-1">Insights into your productivity and task management</p>
+    </div>
+</div>
+
+<!-- Overview Cards -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completion_rate }}%</div>
+            <div class="stat-title">Completion Rate</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_time_entries }}</div>
+            <div class="stat-title">Time Entries</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-week"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completed_last_30_days }}</div>
+            <div class="stat-title">Completed (30 days)</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ tasks_last_30_days }}</div>
+            <div class="stat-title">Created (30 days)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Analysis -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Task Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="status-breakdown">
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot completed"></span>Completed
+                        </span>
+                        <span class="status-value">{{ completed_tasks }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot pending"></span>Pending
+                        </span>
+                        <span class="status-value">{{ pending_tasks }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">
+                            <span class="status-dot in-progress"></span>In Progress
+                        </span>
+                        <span class="status-value">{{ in_progress_tasks }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Priority Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="priority-breakdown">
+                    <div class="priority-item">
+                        <span class="priority-label">High Priority</span>
+                        <span class="priority-value">{{ high_priority }}</span>
+                    </div>
+                    <div class="priority-item">
+                        <span class="priority-label">Medium Priority</span>
+                        <span class="priority-value">{{ medium_priority }}</span>
+                    </div>
+                    <div class="priority-item">
+                        <span class="priority-label">Low Priority</span>
+                        <span class="priority-value">{{ low_priority }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Performance -->
+{% if category_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tags me-2"></i>Category Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for category in category_stats %}
+                    <div class="category-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="category-name">{{ category.category|default:"Uncategorized" }}</span>
+                            <span class="badge bg-primary">{{ category.total }} tasks</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 data-width="{% widthratio category.completed category.total 100 %}"
+                                 aria-valuenow="{{ category.completed }}" aria-valuemin="0" aria-valuemax="{{ category.total }}">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ category.completed }}/{{ category.total }} completed</small>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Productivity Insights -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Productivity Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-trophy text-warning"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Total Tasks</h6>
+                                <p class="mb-0">{{ total_tasks }} tasks created</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-clock text-info"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Time Tracked</h6>
+                                <p class="mb-0">{{ total_time_entries }} time entries</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-star text-success"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Completion Rate</h6>
+                                <p class="mb-0">{{ completion_rate }}% of tasks completed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar widths
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        if (width) {
+            bar.style.width = width + '%';
+        }
+    });
+});
+</script>
+{% endblock %}
+
+<style>
+.status-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.status-label {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #495057;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+}
+
+.status-dot.completed {
+    background-color: #28a745;
+}
+
+.status-dot.pending {
+    background-color: #ffc107;
+}
+
+.status-dot.in-progress {
+    background-color: #17a2b8;
+}
+
+.priority-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.priority-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.priority-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.insight-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.insight-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.insight-content h6 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.insight-content p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.category-item {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.category-name {
+    font-weight: 600;
+    color: #495057;
+}
+
+.progress {
+    margin: 0.5rem 0;
+}
+</style>

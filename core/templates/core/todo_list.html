@@ -1,0 +1,1379 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block title %}My Tasks - Todo App{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for AJAX -->
+<div style="display: none;">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{% csrf_token %}">
+</div>
+
+<!-- Header Section -->
+<div class="tasks-header">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <i class="fas fa-tasks me-3 text-primary"></i>My Tasks
+            </h1>
+            <p class="text-muted mb-0">Manage and track your todos efficiently</p>
+        </div>
+        <a href="{% url 'todo_create' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus me-2"></i>Add New Task
+        </a>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="filters-section mb-4">
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control form-control-lg" id="taskSearch" placeholder="Search tasks...">
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <select class="form-select form-select-lg" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-3 col-sm-6">
+                <select class="form-select form-select-lg" id="priorityFilter">
+                    <option value="">All Priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6 col-sm-6">
+                <select class="form-select form-select-lg" id="sortBy">
+                    <option value="created_at">Date Created</option>
+                    <option value="due_date">Due Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="title">Title</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-6 col-sm-6">
+                <div class="view-toggle-container">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="viewToggle" id="viewGrid" autocomplete="off" checked>
+                        <label class="btn btn-outline-secondary btn-lg" for="viewGrid">
+                            <i class="fas fa-th-large"></i>
+                            <span class="d-none d-sm-inline ms-1">Grid</span>
+                        </label>
+
+                        <input type="radio" class="btn-check" name="viewToggle" id="viewList" autocomplete="off">
+                        <label class="btn btn-outline-secondary btn-lg" for="viewList">
+                            <i class="fas fa-list"></i>
+                            <span class="d-none d-sm-inline ms-1">List</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-overview mb-4">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="stat-card total">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ todos|length }}</div>
+                    <div class="stat-label">Total Tasks</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card pending">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ pending_count }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card completed">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ completed_count }}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card overdue">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ overdue_count }}</div>
+                    <div class="stat-label">Overdue</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tasks Container -->
+<div class="tasks-container">
+    {% if todos %}
+        <!-- Grid View -->
+        <div id="gridView" class="tasks-grid">
+            <div class="row g-4">
+                {% for todo in todos %}
+                    <div class="col-xl-3 col-lg-4 col-md-6 task-item"
+                         data-id="{{ todo.pk }}"
+                         data-status="{{ todo.status }}"
+                         data-priority="{{ todo.priority }}"
+                         data-title="{{ todo.title|lower }}"
+                         data-category="{{ todo.category|lower }}">
+                        <div class="task-card {{ todo.status }} {% if todo.is_overdue %}overdue{% endif %}">
+                            <!-- Card Header -->
+                            <div class="task-header">
+                                <div class="task-priority">
+                                    <span class="priority-badge priority-{{ todo.priority }}">
+                                        <i class="fas fa-flag"></i>
+                                    </span>
+                                </div>
+                                <div class="task-actions">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'todo_update' todo.pk %}">
+                                                <i class="fas fa-edit me-2"></i>Edit
+                                            </a></li>
+                                            <li><a class="dropdown-item text-danger" href="{% url 'todo_delete' todo.pk %}">
+                                                <i class="fas fa-trash me-2"></i>Delete
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Body -->
+                            <div class="task-body">
+                                <h5 class="task-title">{{ todo.title }}</h5>
+                                {% if todo.description %}
+                                    <p class="task-description">{{ todo.description|truncatechars:120 }}</p>
+                                {% endif %}
+
+                                <div class="task-meta">
+                                    {% if todo.category %}
+                                        <span class="meta-item">
+                                            <i class="fas fa-tag"></i> {{ todo.category }}
+                                        </span>
+                                    {% endif %}
+                                    {% if todo.due_date %}
+                                        <span class="meta-item {% if todo.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                            <i class="fas fa-calendar-alt me-1"></i>
+                                            {{ todo.due_date|date:"M d, Y" }}
+                                            {% if todo.is_overdue %}
+                                                <span class="badge bg-danger ms-2 px-2 py-1 rounded-pill">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+                                                </span>
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Status Actions -->
+                            <div class="task-status">
+                                <div class="status-buttons">
+                                    {% if todo.status != 'pending' %}
+                                        <button class="status-btn status-pending"
+                                                onclick="changeStatus({{ todo.pk }}, 'pending')">
+                                            <i class="fas fa-clock"></i>
+                                            <span>Pending</span>
+                                        </button>
+                                    {% endif %}
+                                    {% if todo.status != 'in_progress' %}
+                                        <button class="status-btn status-in-progress"
+                                                onclick="changeStatus({{ todo.pk }}, 'in_progress')">
+                                            <i class="fas fa-play"></i>
+                                            <span>In Progress</span>
+                                        </button>
+                                    {% endif %}
+                                    {% if todo.status != 'completed' %}
+                                        <button class="status-btn status-completed"
+                                                onclick="changeStatus({{ todo.pk }}, 'completed')">
+                                            <i class="fas fa-check"></i>
+                                            <span>Completed</span>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                {% if todo.status == 'in_progress' %}
+                                    <div class="time-tracking-btn mb-2">
+                                        <a href="{% url 'start_time_tracking_todo' todo.pk %}" class="btn btn-sm btn-info w-100">
+                                            <i class="fas fa-clock me-1"></i>Track Time
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                <div class="current-status">
+                                    <span class="badge fs-6 px-3 py-2 rounded-pill status-badge status-{{ todo.status }}">
+                                        <i class="fas fa-circle me-1" style="font-size: 0.6em;"></i>
+                                        {{ todo.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="tasks-list d-none">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for todo in todos %}
+                                    <tr class="task-row"
+                                        data-id="{{ todo.pk }}"
+                                        data-status="{{ todo.status }}"
+                                        data-priority="{{ todo.priority }}"
+                                        data-title="{{ todo.title|lower }}"
+                                        data-category="{{ todo.category|lower }}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="task-indicator status-{{ todo.status }}"></div>
+                                                <div class="ms-3">
+                                                    <h6 class="mb-1">{{ todo.title }}</h6>
+                                                    {% if todo.description %}
+                                                        <small class="text-muted">{{ todo.description|truncatechars:60 }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge status-{{ todo.status }}">
+                                                {{ todo.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="priority-badge priority-{{ todo.priority }}">
+                                                {{ todo.priority|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if todo.due_date %}
+                                                <span class="{% if todo.is_overdue %}text-danger{% endif %}">
+                                                    {{ todo.due_date|date:"M d, Y" }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column gap-1">
+                                                <div class="btn-group">
+                                                    {% if todo.status != 'pending' %}
+                                                        <button class="btn btn-sm btn-outline-secondary"
+                                                                onclick="changeStatus({{ todo.pk }}, 'pending')"
+                                                                title="Mark as Pending">
+                                                            <i class="fas fa-clock"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    {% if todo.status != 'in_progress' %}
+                                                        <button class="btn btn-sm btn-outline-primary"
+                                                                onclick="changeStatus({{ todo.pk }}, 'in_progress')"
+                                                                title="Mark as In Progress">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    {% if todo.status != 'completed' %}
+                                                        <button class="btn btn-sm btn-outline-success"
+                                                                onclick="changeStatus({{ todo.pk }}, 'completed')"
+                                                                title="Mark as Completed">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                                type="button" data-bs-toggle="dropdown">
+                                                            <i class="fas fa-ellipsis-v"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li><a class="dropdown-item" href="{% url 'todo_update' todo.pk %}">
+                                                                <i class="fas fa-edit me-2"></i>Edit
+                                                            </a></li>
+                                                            <li><a class="dropdown-item text-danger" href="{% url 'todo_delete' todo.pk %}">
+                                                                <i class="fas fa-trash me-2"></i>Delete
+                                                            </a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                {% if todo.status == 'in_progress' %}
+                                                    <a href="{% url 'start_time_tracking_todo' todo.pk %}" class="btn btn-sm btn-info">
+                                                        <i class="fas fa-clock me-1"></i>Track Time
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h3 class="empty-state-title">No tasks yet</h3>
+            <p class="empty-state-text">Create your first task to get started with organizing your work.</p>
+            <a href="{% url 'todo_create' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Create Your First Task
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View switching with radio buttons
+    const viewGridRadio = document.getElementById('viewGrid');
+    const viewListRadio = document.getElementById('viewList');
+
+    function switchView() {
+        if (viewGridRadio.checked) {
+            document.getElementById('gridView').classList.remove('d-none');
+            document.getElementById('listView').classList.add('d-none');
+        } else if (viewListRadio.checked) {
+            document.getElementById('listView').classList.remove('d-none');
+            document.getElementById('gridView').classList.add('d-none');
+        }
+    }
+
+    viewGridRadio.addEventListener('change', switchView);
+    viewListRadio.addEventListener('change', switchView);
+
+    // Search functionality with debounce
+    let searchTimeout;
+    document.getElementById('taskSearch').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(filterTasks, 300);
+    });
+
+    // Filter functionality
+    document.getElementById('statusFilter').addEventListener('change', filterTasks);
+    document.getElementById('priorityFilter').addEventListener('change', filterTasks);
+    document.getElementById('sortBy').addEventListener('change', sortTasks);
+
+    // Initialize view
+    switchView();
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function changeStatus(todoId, newStatus) {
+    fetch(`/todo/${todoId}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `status=${newStatus}`
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error('Server error');
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            updateTaskStatus(todoId, newStatus);
+            showSuccessMessage(`Task status updated to ${newStatus.replace('_', ' ')}`);
+        } else {
+            showErrorMessage('Failed to update task status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showErrorMessage('An error occurred while updating the task');
+    });
+}
+
+function updateTaskStatus(todoId, newStatus) {
+    // Update grid view
+    const gridItem = document.querySelector(`.task-item[data-id="${todoId}"]`);
+    if (gridItem) {
+        const card = gridItem.querySelector('.task-card');
+        if (card) {
+            // Remove old status classes
+            card.classList.remove('pending', 'in_progress', 'completed');
+            // Add new status class
+            card.classList.add(newStatus);
+
+            // Update status badge
+            const statusBadge = card.querySelector('.current-status .status-badge');
+            if (statusBadge) {
+                statusBadge.className = `status-badge status-${newStatus}`;
+                statusBadge.textContent = newStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }
+
+            // Update status buttons
+            const statusButtons = card.querySelectorAll('.status-btn');
+            statusButtons.forEach(btn => {
+                btn.style.display = 'flex';
+            });
+            const activeBtn = card.querySelector(`.status-${newStatus}`);
+            if (activeBtn) {
+                activeBtn.style.display = 'none';
+            }
+        }
+    }
+
+    // Update list view
+    const listRow = document.querySelector(`.task-row[data-id="${todoId}"]`);
+    if (listRow) {
+        const statusBadge = listRow.querySelector('.status-badge');
+        if (statusBadge) {
+            statusBadge.className = `status-badge status-${newStatus}`;
+            statusBadge.textContent = newStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+    }
+}
+
+function filterTasks() {
+    const searchTerm = document.getElementById('taskSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const priorityFilter = document.getElementById('priorityFilter').value;
+
+    const taskItems = document.querySelectorAll('.task-item, .task-row');
+
+    taskItems.forEach(item => {
+        const title = item.dataset.title || '';
+        const status = item.dataset.status || '';
+        const priority = item.dataset.priority || '';
+        const category = item.dataset.category || '';
+
+        const matchesSearch = title.includes(searchTerm) || category.includes(searchTerm);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        const matchesPriority = !priorityFilter || priority === priorityFilter;
+
+        if (matchesSearch && matchesStatus && matchesPriority) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function sortTasks() {
+    const sortBy = document.getElementById('sortBy').value;
+    // Implement sorting logic here
+    console.log('Sorting by:', sortBy);
+}
+
+function showSuccessMessage(message) {
+    Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: message,
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+function showErrorMessage(message) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: message
+    });
+}
+</script>
+{% endblock %}
+
+<style>
+.tasks-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+.search-box {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    z-index: 4;
+}
+
+.search-box input {
+    padding-left: 2.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.view-toggle-container .btn-group {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 2px solid #e9ecef;
+}
+
+.view-toggle-container .btn-check:checked + .btn {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.view-toggle-container .btn {
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.view-toggle-container .btn:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.stats-overview {
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.stat-card.total .stat-icon {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.stat-card.pending .stat-icon {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+}
+
+.stat-card.completed .stat-icon {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.stat-card.overdue .stat-icon {
+    background: linear-gradient(135deg, #dc3545, #bd2130);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.task-card {
+    background: white;
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+.task-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.task-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--status-color) 0%, var(--status-color-light) 100%);
+    border-radius: 1.25rem 1.25rem 0 0;
+}
+
+.task-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    border-color: rgba(255,255,255,0.9);
+}
+
+.task-card.pending {
+    --status-color: #ffc107;
+    --status-color-light: #ffecb3;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.03) 0%, rgba(255, 235, 179, 0.08) 100%);
+}
+
+.task-card.pending::before {
+    background: linear-gradient(90deg, #ffc107 0%, #ffecb3 50%, #fff3cd 100%);
+}
+
+.task-card.in_progress {
+    --status-color: #17a2b8;
+    --status-color-light: #b3e5fc;
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.03) 0%, rgba(179, 229, 252, 0.08) 100%);
+}
+
+.task-card.in_progress::before {
+    background: linear-gradient(90deg, #17a2b8 0%, #b3e5fc 50%, #d1ecf1 100%);
+}
+
+.task-card.completed {
+    --status-color: #28a745;
+    --status-color-light: #c3e6cb;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.03) 0%, rgba(195, 230, 203, 0.08) 100%);
+}
+
+.task-card.completed::before {
+    background: linear-gradient(90deg, #28a745 0%, #c3e6cb 50%, #d4edda 100%);
+}
+
+.task-card.overdue {
+    --status-color: #dc3545;
+    --status-color-light: #f5c6cb;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(245, 198, 203, 0.1) 100%);
+    animation: pulse 2s infinite;
+}
+
+.task-card.overdue::before {
+    background: linear-gradient(90deg, #dc3545 0%, #f5c6cb 50%, #f8d7da 100%);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 20px rgba(220, 53, 69, 0.1);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2);
+    }
+}
+
+.task-header {
+    padding: 1rem 1.5rem 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.priority-high {
+    background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+    color: #c53030;
+    border: 1px solid #fc8181;
+    box-shadow: 0 2px 6px rgba(197, 48, 48, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.priority-high::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(
+        from 0deg,
+        transparent 0deg 90deg,
+        rgba(255,255,255,0.1) 90deg 180deg
+    );
+    animation: rotate 3s linear infinite;
+}
+
+.priority-medium {
+    background: linear-gradient(135deg, #fef5e7 0%, #fde68a 100%);
+    color: #d69e2e;
+    border: 1px solid #f6e05e;
+    box-shadow: 0 2px 6px rgba(214, 158, 46, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.priority-medium::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(
+        from 45deg,
+        transparent 0deg 90deg,
+        rgba(255,255,255,0.1) 90deg 180deg
+    );
+    animation: rotate 4s linear infinite reverse;
+}
+
+.priority-low {
+    background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+    color: #38a169;
+    border: 1px solid #68d391;
+    box-shadow: 0 2px 6px rgba(56, 161, 105, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.priority-low::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-conic-gradient(
+        from 90deg,
+        transparent 0deg 90deg,
+        rgba(255,255,255,0.1) 90deg 180deg
+    );
+    animation: rotate 5s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.task-body {
+    padding: 1rem 1.5rem;
+    flex: 1;
+    position: relative;
+    z-index: 2;
+}
+
+.task-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.3s ease;
+}
+
+.task-card:hover .task-title {
+    color: #2b6cb0;
+}
+
+.task-description {
+    color: #4a5568;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #a0aec0;
+}
+
+.meta-item i {
+    margin-right: 0.25rem;
+}
+
+.task-status {
+    padding: 1rem 1.5rem;
+    background: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.status-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.status-btn {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.8);
+}
+
+.status-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s;
+}
+
+.status-btn:hover::before {
+    left: 100%;
+}
+
+.status-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.status-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.status-btn i {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+}
+
+.status-btn:hover i {
+    transform: scale(1.1);
+}
+
+.status-btn span {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background: linear-gradient(135deg, #fef5e7 0%, #fff8e1 100%);
+    color: #d69e2e;
+    border: 1px solid #ffeaa7;
+    box-shadow: 0 2px 8px rgba(214, 158, 46, 0.15);
+}
+
+.status-pending:hover {
+    background: linear-gradient(135deg, #fce4b3 0%, #ffecb3 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(214, 158, 46, 0.25);
+}
+
+.status-in-progress {
+    background: linear-gradient(135deg, #ebf8ff 0%, #e3f2fd 100%);
+    color: #3182ce;
+    border: 1px solid #90caf9;
+    box-shadow: 0 2px 8px rgba(49, 140, 206, 0.15);
+}
+
+.status-in-progress:hover {
+    background: linear-gradient(135deg, #c6e2ff 0%, #bbdefb 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(49, 140, 206, 0.25);
+}
+
+.status-completed {
+    background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+    color: #38a169;
+    border: 1px solid #81c784;
+    box-shadow: 0 2px 8px rgba(56, 161, 105, 0.15);
+}
+
+.status-completed:hover {
+    background: linear-gradient(135deg, #c6f6d5 0%, #c8e6c9 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(56, 161, 105, 0.25);
+}
+
+.current-status {
+    text-align: center;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fef5e7;
+    color: #d69e2e;
+}
+
+.status-in_progress {
+    background: #ebf8ff;
+    color: #3182ce;
+}
+
+.status-completed {
+    background: #f0fff4;
+    color: #38a169;
+}
+
+.task-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.task-indicator.status-pending {
+    background: #ffc107;
+}
+
+.task-indicator.status-in_progress {
+    background: #17a2b8;
+}
+
+.task-indicator.status-completed {
+    background: #28a745;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: #cbd5e0;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-text {
+    color: #718096;
+    margin-bottom: 2rem;
+}
+
+.filters-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Enhanced Responsive Design */
+@media (max-width: 1200px) {
+    .tasks-header {
+        padding: 1.5rem;
+    }
+
+    .task-card {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .filters-section {
+        padding: 1rem;
+    }
+
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .tasks-header {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .tasks-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .filters-section {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .search-box input {
+        font-size: 0.9rem;
+    }
+
+    .form-select-lg {
+        font-size: 0.9rem;
+    }
+
+    .view-toggle-container .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+        margin-right: 0.75rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .task-card {
+        margin-bottom: 1rem;
+    }
+
+    .task-header {
+        padding: 0.75rem 1rem 0.5rem;
+    }
+
+    .task-body {
+        padding: 0.75rem 1rem;
+    }
+
+    .task-status {
+        padding: 0.75rem 1rem;
+    }
+
+    .status-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .status-btn {
+        flex-direction: row;
+        justify-content: center;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .tasks-header {
+        padding: 0.75rem;
+    }
+
+    .tasks-header h1 {
+        font-size: 1.25rem;
+    }
+
+    .filters-section {
+        padding: 0.5rem;
+    }
+
+    .search-box input {
+        font-size: 0.85rem;
+        padding-left: 2rem;
+    }
+
+    .search-icon {
+        left: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .stat-card {
+        padding: 0.75rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        margin-right: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+
+    .task-card {
+        border-radius: 0.75rem;
+    }
+
+    .task-title {
+        font-size: 1rem;
+    }
+
+    .task-description {
+        font-size: 0.8rem;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Enhanced Table Styles for List View */
+.tasks-list .table {
+    margin-bottom: 0;
+}
+
+.tasks-list .table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tasks-list .table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.tasks-list .table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.tasks-list .task-indicator {
+    margin-right: 0.75rem;
+}
+
+/* Enhanced Empty State */
+.empty-state {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin: 2rem 0;
+}
+
+.empty-state-icon {
+    color: #cbd5e0;
+    margin-bottom: 1.5rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.empty-state-title {
+    color: #4a5568;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-text {
+    color: #718096;
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Loading States */
+.task-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.task-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Focus States */
+.form-control:focus,
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Better Button States */
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+/* Improved Dropdown Styles */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-radius: 0.5rem;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+</style>

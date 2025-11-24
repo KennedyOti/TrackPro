@@ -1,0 +1,373 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block title %}Reports - Todo App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-0">Reports & Analytics</h1>
+                <p class="text-muted mt-1">Insights into your productivity and task management</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                    <i class="fas fa-download me-2"></i>Export PDF
+                </button>
+                <button class="btn btn-outline-secondary" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv me-2"></i>Export CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overview Cards -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completion_rate }}%</div>
+            <div class="stat-title">Completion Rate</div>
+            <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> +5.2%
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_time_entries }}</div>
+            <div class="stat-title">Time Entries</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-calendar-week"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ completed_last_30_days }}</div>
+            <div class="stat-title">Completed (30 days)</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ tasks_last_30_days }}</div>
+            <div class="stat-title">Created (30 days)</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Task Status Breakdown -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Task Status Breakdown
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Priority Distribution -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Priority Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Monthly Progress -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Monthly Progress (Last 6 Months)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart" width="600" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Performance -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tags me-2"></i>Category Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for category in category_stats %}
+                    <div class="category-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="category-name">{{ category.category|default:"Uncategorized" }}</span>
+                            <span class="badge bg-primary">{{ category.total }}</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 data-width="{{ category.completed|mul:100|div:category.total|floatformat:0 }}"
+                                 aria-valuenow="{{ category.completed }}" aria-valuemin="0" aria-valuemax="{{ category.total }}">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ category.completed }}/{{ category.total }} completed</small>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-center py-4">No categorized tasks yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Productivity Insights -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Productivity Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-fire text-warning"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Best Performing Day</h6>
+                                <p class="mb-0">You complete most tasks on Wednesdays</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-clock text-info"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Average Completion Time</h6>
+                                <p class="mb-0">Tasks are completed in ~2.3 days on average</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="insight-card">
+                            <div class="insight-icon">
+                                <i class="fas fa-star text-success"></i>
+                            </div>
+                            <div class="insight-content">
+                                <h6>Most Productive Category</h6>
+                                <p class="mb-0">Work-related tasks have highest completion rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar widths
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        if (width) {
+            bar.style.width = width + '%';
+        }
+    });
+
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        new Chart(statusCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'In Progress'],
+                datasets: [{
+                    data: [{{ completed_tasks }}, {{ pending_tasks }}, {{ in_progress_tasks }}],
+                    backgroundColor: ['#28a745', '#ffc107', '#17a2b8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Priority Chart
+    const priorityCtx = document.getElementById('priorityChart');
+    if (priorityCtx) {
+        new Chart(priorityCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['High', 'Medium', 'Low'],
+                datasets: [{
+                    label: 'Tasks by Priority',
+                    data: [{{ high_priority }}, {{ medium_priority }}, {{ low_priority }}],
+                    backgroundColor: ['#dc3545', '#ffc107', '#28a745'],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Monthly Chart
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (monthlyCtx) {
+        const monthlyLabels = {{ monthly_data|safe }}.map(item => item.month);
+        const monthlyValues = {{ monthly_data|safe }}.map(item => item.completed);
+
+        new Chart(monthlyCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: monthlyValues,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+function exportReport(format) {
+    // Placeholder for export functionality
+    Swal.fire({
+        title: 'Export Feature',
+        text: `${format.toUpperCase()} export will be available soon!`,
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
+}
+</script>
+{% endblock %}
+
+<style>
+.insight-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.insight-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.insight-content h6 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.insight-content p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.category-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.category-item:last-child {
+    border-bottom: none;
+}
+
+.category-name {
+    font-weight: 600;
+    color: #495057;
+}
+
+.progress {
+    margin: 0.5rem 0;
+}
+
+.stat-change.positive {
+    color: #28a745;
+}
+
+.stat-change.negative {
+    color: #dc3545;
+}
+</style>

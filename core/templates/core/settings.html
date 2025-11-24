@@ -1,0 +1,207 @@
+{% extends 'core/dashboard_base.html' %}
+
+{% block title %}Settings - Todo App{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-0">Settings</h1>
+                <p class="text-muted mt-1">Customize your Todo App experience</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Profile Settings -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i>Profile Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="{{ form.first_name.id_for_label }}"
+                                   name="first_name" value="{{ form.first_name.value|default:'' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="{{ form.last_name.id_for_label }}"
+                                   name="last_name" value="{{ form.last_name.value|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="{{ form.email.id_for_label }}"
+                               name="email" value="{{ form.email.value|default:'' }}" required>
+                        {% if form.email.errors %}
+                            <div class="text-danger mt-1">
+                                <small>{{ form.email.errors.0 }}</small>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.bio.id_for_label }}" class="form-label">Bio</label>
+                        <textarea class="form-control" id="{{ form.bio.id_for_label }}"
+                                  name="bio" rows="3" placeholder="Tell us about yourself...">{{ form.bio.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.timezone.id_for_label }}" class="form-label">Timezone</label>
+                            <select class="form-select" id="{{ form.timezone.id_for_label }}" name="timezone">
+                                <option value="UTC" {% if form.timezone.value == 'UTC' %}selected{% endif %}>UTC</option>
+                                <option value="America/New_York" {% if form.timezone.value == 'America/New_York' %}selected{% endif %}>Eastern Time</option>
+                                <option value="America/Chicago" {% if form.timezone.value == 'America/Chicago' %}selected{% endif %}>Central Time</option>
+                                <option value="America/Denver" {% if form.timezone.value == 'America/Denver' %}selected{% endif %}>Mountain Time</option>
+                                <option value="America/Los_Angeles" {% if form.timezone.value == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time</option>
+                                <option value="Europe/London" {% if form.timezone.value == 'Europe/London' %}selected{% endif %}>London</option>
+                                <option value="Europe/Paris" {% if form.timezone.value == 'Europe/Paris' %}selected{% endif %}>Paris</option>
+                                <option value="Asia/Tokyo" {% if form.timezone.value == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                                <option value="Australia/Sydney" {% if form.timezone.value == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.theme.id_for_label }}" class="form-label">Theme</label>
+                            <select class="form-select" id="{{ form.theme.id_for_label }}" name="theme">
+                                <option value="light" {% if form.theme.value == 'light' %}selected{% endif %}>Light</option>
+                                <option value="dark" {% if form.theme.value == 'dark' %}selected{% endif %}>Dark</option>
+                                <option value="auto" {% if form.theme.value == 'auto' %}selected{% endif %}>Auto (System)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Save Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="col-lg-4">
+        <!-- Notification Preferences -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bell me-2"></i>Notifications
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ form.email_notifications.id_for_label }}"
+                                   name="email_notifications" {% if form.email_notifications.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.email_notifications.id_for_label }}">
+                                Email Notifications
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ form.sound_notifications.id_for_label }}"
+                                   name="sound_notifications" {% if form.sound_notifications.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.sound_notifications.id_for_label }}">
+                                Sound Notifications
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ form.reminder_notifications.id_for_label }}"
+                                   name="reminder_notifications" {% if form.reminder_notifications.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.reminder_notifications.id_for_label }}">
+                                Reminder Notifications
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ form.due_date_notifications.id_for_label }}"
+                                   name="due_date_notifications" {% if form.due_date_notifications.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.due_date_notifications.id_for_label }}">
+                                Due Date Notifications
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="{{ form.completed_task_notifications.id_for_label }}"
+                                   name="completed_task_notifications" {% if form.completed_task_notifications.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.completed_task_notifications.id_for_label }}">
+                                Completed Task Notifications
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Preferences
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Preferences -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>Dashboard
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.items_per_page.id_for_label }}" class="form-label">Items per page</label>
+                        <select class="form-select" id="{{ form.items_per_page.id_for_label }}" name="items_per_page">
+                            <option value="5" {% if form.items_per_page.value == 5 %}selected{% endif %}>5</option>
+                            <option value="10" {% if form.items_per_page.value == 10 %}selected{% endif %}>10</option>
+                            <option value="15" {% if form.items_per_page.value == 15 %}selected{% endif %}>15</option>
+                            <option value="20" {% if form.items_per_page.value == 20 %}selected{% endif %}>20</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.default_priority.id_for_label }}" class="form-label">Default Priority</label>
+                        <select class="form-select" id="{{ form.default_priority.id_for_label }}" name="default_priority">
+                            <option value="low" {% if form.default_priority.value == 'low' %}selected{% endif %}>Low</option>
+                            <option value="medium" {% if form.default_priority.value == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="high" {% if form.default_priority.value == 'high' %}selected{% endif %}>High</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-save me-2"></i>Save Dashboard
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
