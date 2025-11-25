@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ddx*^b3%5yi3)%*fr8=$3#g!3fd(1%l(mf+96&u&2g(+uj7!kb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['trackpro-iwyn.onrender.com']
 
 
 # Application definition
